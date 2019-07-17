@@ -58,7 +58,7 @@ class User extends Authenticatable
         $email = $this->email;
         $size = 32;
 
-        return "https://www.gravatar.com/avatar/" . md5( strtolower( trim( $email ) ) ) . "?s=" . $size;
+        return "https://www.gravatar.com/avatar/" . md5(strtolower(trim($email))) . "?s=" . $size;
     }
 
     public function favorites()
@@ -92,5 +92,23 @@ class User extends Authenticatable
 
         $question->votes_count = $upVotes + $downVotes;
         $question->save();
+    }
+
+    public function voteAnswer(Answer $answer, $vote)
+    {
+        $voteAnswers = $this->voteAnswers();
+
+        if ($voteAnswers->where('votable_id', $answer->id)->exists()) {
+            $voteAnswers->updateExistingPivot($answer, ['vote' => $vote]);
+        } else {
+            $voteAnswers->attach($answer, ['vote' => $vote]);
+        }
+
+        $answer->load('votes');
+        $upVotes = (int) $answer->upVotes()->sum('vote');
+        $downVotes = (int) $answer->downVotes()->sum('vote');
+
+        $answer->votes_count = $upVotes + $downVotes;
+        $answer->save();
     }
 }
